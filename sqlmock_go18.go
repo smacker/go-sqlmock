@@ -97,9 +97,12 @@ func (c *sqlmock) PrepareContext(ctx context.Context, query string) (driver.Stmt
 
 // Implement the "Pinger" interface
 // for now we do not have a Ping expectation
-// may be something for the future
+// but it allows to always return some error if it was set
 func (c *sqlmock) Ping(ctx context.Context) error {
-	return nil
+	c.Lock()
+	defer c.Unlock()
+
+	return c.pingErr
 }
 
 // Implement the "StmtExecContext" interface

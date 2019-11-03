@@ -14,6 +14,7 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"fmt"
+	"sync"
 	"time"
 )
 
@@ -74,6 +75,9 @@ type Sqlmock interface {
 	// sql driver.Value slice or from the CSV string and
 	// to be used as sql driver.Rows.
 	NewRows(columns []string) *Rows
+
+	// SetPingError set error that will be returned by all the next calls of Ping
+	SetPingError(err error)
 }
 
 type sqlmock struct {
@@ -85,6 +89,10 @@ type sqlmock struct {
 	queryMatcher QueryMatcher
 
 	expected []expectation
+
+	// better add new "expectation" for ping but it would break backward compatibility
+	pingErr error
+	sync.Mutex
 }
 
 func (c *sqlmock) open(options []func(*sqlmock) error) (*sql.DB, Sqlmock, error) {
@@ -586,4 +594,10 @@ func (c *sqlmock) NewRows(columns []string) *Rows {
 	r := NewRows(columns)
 	r.converter = c.converter
 	return r
+}
+
+func (c *sqlmock) SetPingError(err error) {
+	c.Lock()
+	defer c.Unlock()
+	c.pingErr = err
 }
